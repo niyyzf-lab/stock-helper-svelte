@@ -3,6 +3,7 @@
   
   export let show = false
   export let title = ''
+  export let class_ = '' // 添加 class 属性用于自定义样式
 
   function close() {
     show = false
@@ -40,7 +41,7 @@
     >
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div 
-        class="modal-content"
+        class="modal-content {class_}"
         on:click|stopPropagation
       >
         <div class="modal-header">
@@ -82,24 +83,32 @@
 
   .modal-container {
     position: relative;
-    
-
-    max-height: 90vh;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 1;
   }
 
   .modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 90vw;
+    min-width: min-content;
+    max-height: 90vh;
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: 
       0 10px 25px -5px rgba(0, 0, 0, 0.1),
       0 8px 10px -6px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .modal-header {
     padding: 16px 24px;
-    padding-bottom: 0;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -107,6 +116,7 @@
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    flex-shrink: 0;
   }
 
   h2 {
@@ -138,13 +148,24 @@
   }
 
   .modal-body {
-    padding: 24px;
-    overflow: hidden;
-    max-height: calc(90vh - 70px); /* 减去header高度 */
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   /* 确保模态窗口在所有内容之上 */
   :global(body:has(.modal-wrapper)) {
     overflow: hidden;
+  }
+
+  /* 移除 width 限制，让子组件自己控制宽度 */
+  :global(.modal-content.result-modal) {
+    max-width: none !important;
+    width: auto !important;
+    height: 90vh !important;
+    display: flex;
+    flex-direction: column;
   }
 </style> 

@@ -5,6 +5,7 @@
     "target": "ESNext",
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "baseUrl": ".",
     /**
@@ -15,7 +16,9 @@
      */
     "allowJs": true,
     "checkJs": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true
   },
   "include": [
     "src/**/*.d.ts",

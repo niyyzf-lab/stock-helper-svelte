@@ -12,14 +12,14 @@
   import EmptyState from '../components/EmptyState.svelte'
   import { toastStore } from '../stores/toast'
 
-  interface Strategy {
+  type Strategy = {
     id: number
     name: string
     description: string
     filePath: string
   }
 
-  interface ExecutionStatus {
+  type ExecutionStatus = {
     status: 'running' | 'paused' | 'completed' | 'error' | 'idle';
     startTime: string;
     totalStocks: number;
@@ -31,7 +31,7 @@
     error?: string;
   }
 
-  interface StockSignal {
+  type StockSignal = {
     code: string;
     name: string;
     price: number;

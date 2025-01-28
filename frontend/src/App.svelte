@@ -12,6 +12,8 @@
   import { onMount } from 'svelte'
   import { EventsOn } from '../wailsjs/runtime'
 
+
+
   // 路由配置
   const routes = {
     // 注意：这里的路由路径不需要带 #
