@@ -2,7 +2,6 @@
   import { fade, fly } from 'svelte/transition'
   import { quintOut } from 'svelte/easing'
   import { onMount, onDestroy } from 'svelte'
-  import { Target } from 'lucide-svelte'
   import { toastStore } from '../stores/toast'
   import Modal from '../components/Modal.svelte'
   import EmptyState from '../components/stock-test/EmptyState.svelte'
