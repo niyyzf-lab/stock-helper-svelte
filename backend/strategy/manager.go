@@ -16,7 +16,6 @@ import (
 
 	"stock-helper-svelte/backend/api"
 	"stock-helper-svelte/backend/engine"
-	"stock-helper-svelte/backend/types"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -24,17 +23,17 @@ import (
 // ExecutionUpdater 定义了执行状态更新的接口
 type ExecutionUpdater interface {
 	UpdateProgress(processedStocks int, currentStock string)
-	AddSignal(types.StockSignal)
+	AddSignal(engine.StockSignal)
 }
 
 // Manager 策略管理器
 type Manager struct {
-	basePath  string              // 策略文件基础路径
-	apiClient *api.Client         // API客户端
-	ctx       context.Context     // 上下文
-	engine    *engine.Engine      // 执行引擎
-	mutex     sync.RWMutex        // 读写锁
-	signals   []types.StockSignal // 当前执行的信号
+	basePath  string               // 策略文件基础路径
+	apiClient *api.Client          // API客户端
+	ctx       context.Context      // 上下文
+	engine    *engine.Engine       // 执行引擎
+	mutex     sync.RWMutex         // 读写锁
+	signals   []engine.StockSignal // 当前执行的信号
 }
 
 // statusUpdater 实现 engine.StatusUpdater 接口
@@ -51,7 +50,7 @@ func (s *statusUpdater) UpdateProgress(processedStocks int, currentStock string)
 	// 这个方法可能不需要实现,因为 UpdateStatus 已经包含了进度信息
 }
 
-func (s *statusUpdater) AddSignal(signal types.StockSignal) {
+func (s *statusUpdater) AddSignal(signal engine.StockSignal) {
 	s.manager.mutex.Lock()
 	s.manager.signals = append(s.manager.signals, signal)
 	s.manager.mutex.Unlock()
@@ -64,7 +63,7 @@ func NewManager(basePath string, apiClient *api.Client, ctx context.Context) *Ma
 		basePath:  basePath,
 		apiClient: apiClient,
 		ctx:       ctx,
-		signals:   make([]types.StockSignal, 0),
+		signals:   make([]engine.StockSignal, 0),
 	}
 
 	// 创建状态更新器
@@ -96,6 +95,11 @@ func NewManager(basePath string, apiClient *api.Client, ctx context.Context) *Ma
 
 // GetCurrentStatus 获取当前执行状态
 func (m *Manager) GetCurrentStatus() engine.ExecutionStatus {
+	if m == nil {
+		return engine.ExecutionStatus{
+			Status: engine.StatusIdle,
+		}
+	}
 	if m.engine == nil {
 		return engine.ExecutionStatus{
 			Status: engine.StatusIdle,
@@ -112,7 +116,7 @@ func (m *Manager) ExecuteStrategy(strategy *engine.Strategy) error {
 
 	// 重置信号列表
 	m.mutex.Lock()
-	m.signals = make([]types.StockSignal, 0)
+	m.signals = make([]engine.StockSignal, 0)
 	m.mutex.Unlock()
 
 	// 执行策略
@@ -128,7 +132,7 @@ func (m *Manager) ExecuteStrategy(strategy *engine.Strategy) error {
 
 		// 获取当前信号列表的副本
 		m.mutex.RLock()
-		signals := make([]types.StockSignal, len(m.signals))
+		signals := make([]engine.StockSignal, len(m.signals))
 		copy(signals, m.signals)
 		m.mutex.RUnlock()
 
@@ -201,7 +205,7 @@ func (m *Manager) Stop() {
 			if status.Status == engine.StatusStopped {
 				// 获取当前信号列表的副本
 				m.mutex.RLock()
-				signals := make([]types.StockSignal, len(m.signals))
+				signals := make([]engine.StockSignal, len(m.signals))
 				copy(signals, m.signals)
 				m.mutex.RUnlock()
 
@@ -259,7 +263,7 @@ func (m *Manager) getStrategyName(id int) string {
 }
 
 // GetCurrentSignals 获取当前执行收集到的信号
-func (m *Manager) GetCurrentSignals() []types.StockSignal {
+func (m *Manager) GetCurrentSignals() []engine.StockSignal {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	return m.signals
@@ -336,10 +340,14 @@ func (m *Manager) parseStrategyMeta(filePath string) (*engine.StrategyMeta, erro
 
 // GetStrategies 获取所有策略
 func (m *Manager) GetStrategies() []engine.Strategy {
+	if m == nil {
+		return []engine.Strategy{}
+	}
+
 	pattern := filepath.Join(m.basePath, "*.lua")
 	files, err := filepath.Glob(pattern)
 	if err != nil {
-		return nil
+		return []engine.Strategy{}
 	}
 
 	var strategies []engine.Strategy

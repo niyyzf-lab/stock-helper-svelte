@@ -6,6 +6,8 @@
   export let stocks: Stock[] = []
   export let onClose = () => {}
   export let onStart = () => {}
+  export let loadingFirstQuiz = false
+  export let hasFirstQuiz = false
 
   function formatDate(dateStr: string) {
     if (!dateStr) return '未知时间'
@@ -56,8 +58,17 @@
       {/each}
     </div>
 
-    <button class="confirm-btn fade-in" on:click={onStart}>
-      开始测试
+    <button 
+      class="confirm-btn fade-in" 
+      on:click={onStart}
+      disabled={loadingFirstQuiz || !hasFirstQuiz}
+    >
+      {#if loadingFirstQuiz}
+        <div class="loading-spinner"></div>
+        <span>正在准备题目...</span>
+      {:else}
+        开始测试
+      {/if}
     </button>
   </div>
 </Modal>
@@ -173,7 +184,9 @@
   }
 
   .confirm-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     margin-top: 24px;
     padding: 12px;
@@ -190,6 +203,11 @@
   .confirm-btn:hover {
     background: var(--primary-600);
     transform: translateY(-1px);
+  }
+
+  .confirm-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
   }
 
   /* 动画 */
@@ -240,5 +258,19 @@
 
   .stock-list::-webkit-scrollbar-thumb:hover {
     background: #cbd5e1;
+  }
+
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style> 

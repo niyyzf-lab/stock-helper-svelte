@@ -2,7 +2,6 @@
   import { createEventDispatcher } from 'svelte'
   import { fade } from 'svelte/transition'
   import toast from 'svelte-french-toast'
-  import { onMount, onDestroy } from 'svelte'
 
   interface ExecutionStatus {
     status: 'running' | 'paused' | 'completed' | 'error' | 'idle';
@@ -20,11 +19,8 @@
 
   const dispatch = createEventDispatcher()
   let toastId: string;
-  let lastProgress = 0;
-  let progressInterval: any;
   let panelElement: HTMLElement;
   let isVisible = false;
-  let mainContainer: HTMLElement;
 
   // 检查元素是否在视口中
   function checkVisibility() {
@@ -32,17 +28,6 @@
     const rect = panelElement.getBoundingClientRect();
     const windowHeight = window.innerHeight || document.documentElement.clientHeight;
     return rect.top >= 0 && rect.bottom <= windowHeight;
-  }
-
-  // 滚动到结果面板
-  function scrollToResults() {
-    const mainContent = document.querySelector('.main-container');
-    if (mainContent) {
-      mainContent.scrollTo({
-        top: mainContent.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
   }
 
   // 滚动到执行面板
@@ -53,10 +38,6 @@
         top: 0,
         behavior: 'smooth'
       });
-    }
-    if (toastId) {
-      toast.dismiss(toastId);
-      toastId = '';
     }
   }
 
@@ -74,17 +55,6 @@
     return speed.toFixed(1)
   }
 
-  // 监听滚动事件
-  function handleScroll() {
-    if (status === 'running') {
-      updateToastProgress();
-    }
-  }
-
-  // 计算已运行时间
-  $: elapsedTime = executionState?.startTime ? 
-    Math.floor((Date.now() - new Date(executionState.startTime).getTime()) / 1000) : 0
-
   // 安全获取进度
   $: progress = typeof executionState?.progress === 'number' ? executionState.progress : 0
   $: processedCount = typeof executionState?.processedCount === 'number' ? executionState.processedCount : 0
@@ -93,83 +63,13 @@
   $: estimateTime = typeof executionState?.estimateTime === 'number' ? executionState.estimateTime : 0
   $: currentStock = executionState?.currentStock || ''
   $: status = executionState?.status || 'idle'
-
-  // 监听状态变化
-  $: {
-    if (status === 'running' && progress > lastProgress) {
-      updateToastProgress();
-    } else if (status !== 'running' && toastId) {
-      // 处理非运行状态
-      if (status === 'completed' || status === 'error' || status === 'idle') {
-        updateToastProgress();
-      }
-    }
-  }
-
-  onMount(() => {
-    // 启动定时更新
-    progressInterval = setInterval(() => {
-      if (status === 'running') {
-        updateToastProgress();
-      }
-    }, 1000);
-
-    // 添加滚动监听
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // 添加 toast 点击监听
-    document.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('.toast-clickable')) {
-        scrollToExecution();
-      }
-    });
-  });
-
-  onDestroy(() => {
-    // 清理定时器
-    if (progressInterval) {
-      clearInterval(progressInterval);
-    }
-    // 清理 toast
-    if (toastId) {
-      toast.dismiss(toastId);
-    }
-    // 移除滚动监听
-    window.removeEventListener('scroll', handleScroll);
-  });
-
-  // 调试输出
-  $: console.log('ExecutionPanel state:', { 
-    progress, 
-    processedCount, 
-    totalStocks, 
-    speed, 
-    estimateTime, 
-    currentStock, 
-    status 
-  })
-
-  // 更新 toast 配置
-  const toastConfig = {
-    position: 'bottom-right' as const,
-    duration: Infinity,
-    style: 'min-width: 300px; cursor: pointer;',
-    className: 'toast-clickable',
-    ariaProps: {
-      role: 'alert' as const,
-      'aria-live': 'polite' as const
-    },
-    onClick: () => {
-      scrollToExecution();
-    }
-  };
+  $: elapsedTime = executionState?.startTime ? 
+    Math.floor((Date.now() - new Date(executionState.startTime).getTime()) / 1000) : 0
 
   // 更新 Toast 进度
   function updateToastProgress() {
-    // 检查面板是否在视口中
     isVisible = checkVisibility();
     
-    // 如果面板可见，不显示 toast
     if (isVisible) {
       if (toastId) {
         toast.dismiss(toastId);
@@ -178,50 +78,64 @@
       return;
     }
 
-    if (status === 'running' && progress > lastProgress) {
+    if (status === 'running' && progress >= 0) {
       if (!toastId) {
         toastId = toast.loading(
           `正在处理: ${currentStock || '准备中...'}`, 
-          toastConfig
+          {
+            position: 'bottom-right',
+            duration: Infinity,
+            style: 'min-width: 300px; cursor: pointer;',
+            className: 'toast-clickable'
+          }
         );
+
+        // 添加点击事件监听
+        const toastElement = document.querySelector('.toast-clickable');
+        if (toastElement) {
+          toastElement.addEventListener('click', scrollToExecution);
+        }
       } else {
         toast.loading(
           `正在处理: ${currentStock || '准备中...'} (${progress.toFixed(1)}%)`,
-          { ...toastConfig, id: toastId }
+          { id: toastId }
         );
       }
-      lastProgress = progress;
     }
 
-    // 处理完成或出错时
     if (status !== 'running' && toastId) {
       if (status === 'completed') {
         toast.success(
           `处理完成: 共处理 ${processedCount}/${totalStocks} 只股票`,
-          { ...toastConfig, duration: 3000 }
+          { id: toastId, duration: 3000 }
         );
       } else if (status === 'error') {
         toast.error(
           `处理出错: ${executionState.error || '未知错误'}`,
-          { ...toastConfig, duration: 5000 }
+          { id: toastId, duration: 5000 }
         );
       } else if (status === 'idle') {
         toast.success(
           `已停止: 共处理 ${processedCount}/${totalStocks} 只股票`,
-          { ...toastConfig, duration: 3000 }
+          { id: toastId, duration: 3000 }
         );
       }
       toastId = '';
-      lastProgress = 0;
+    }
+  }
+
+  $: {
+    if (executionState) {
+      updateToastProgress();
     }
   }
 </script>
 
 {#if status === 'running' || status === 'paused'}
   <section class="execution-panel" bind:this={panelElement} in:fade={{duration: 200}}>
-    <div class="status-bar">
+    <div class="status-header">
       <div class="status-info">
-        <div class="status-badge" class:paused={status === 'paused'}>
+        <div class="status-badge" class:running={status === 'running'} class:paused={status === 'paused'}>
           {#if status === 'running'}
             <div class="pulse"></div>
             <span>执行中</span>
@@ -233,7 +147,7 @@
             <span>已暂停</span>
           {/if}
         </div>
-        <div class="divider"></div>
+
         <div class="metrics">
           <div class="metric">
             <span class="label">已处理</span>
@@ -255,9 +169,10 @@
           {/if}
         </div>
       </div>
+
       <div class="controls">
         {#if status === 'running'}
-          <button class="btn" on:click={() => dispatch('pause')}>
+          <button class="btn pause" on:click={() => dispatch('pause')}>
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none">
               <rect x="6" y="4" width="4" height="16" stroke="none" fill="currentColor"/>
               <rect x="14" y="4" width="4" height="16" stroke="none" fill="currentColor"/>
@@ -265,7 +180,7 @@
             暂停
           </button>
         {:else if status === 'paused'}
-          <button class="btn" on:click={() => dispatch('resume')}>
+          <button class="btn resume" on:click={() => dispatch('resume')}>
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none">
               <path d="M5 3l14 9-14 9V3z" stroke="none" fill="currentColor"/>
             </svg>
@@ -290,7 +205,7 @@
       <span class="stock">{currentStock || '准备中...'}</span>
     </div>
 
-    <button class="scroll-btn" on:click={scrollToResults}>
+    <button class="scroll-btn" on:click={scrollToExecution}>
       <div class="scroll-icon">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
           <path d="M12 5v14M5 12l7 7 7-7" />
@@ -303,18 +218,36 @@
 
 <style>
   .execution-panel {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px;
-    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
     position: relative;
+    overflow: hidden;
+    touch-action: manipulation;
   }
 
-  .status-bar {
+  .execution-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--primary-500) 2%, transparent),
+      transparent 70%
+    );
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
+  .status-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
   }
 
   .status-info {
@@ -326,187 +259,293 @@
   .status-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: #ecfdf5;
-    color: #059669;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-lg);
+    font-size: 14px;
+    font-weight: var(--font-medium);
+    letter-spacing: -0.01em;
+    min-width: 90px;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .status-badge.running {
+    color: var(--success-600);
+    background: color-mix(in srgb, var(--success-500) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--success-500) 15%, transparent);
+  }
+
+  :global(.dark) .status-badge.running {
+    background: color-mix(in srgb, var(--success-500) 15%, var(--surface));
+    color: var(--success-400);
+    border-color: color-mix(in srgb, var(--success-400) 20%, transparent);
   }
 
   .status-badge.paused {
-    background: #f3f4f6;
-    color: #6b7280;
+    color: var(--warning-600);
+    background: color-mix(in srgb, var(--warning-500) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--warning-500) 15%, transparent);
+  }
+
+  :global(.dark) .status-badge.paused {
+    background: color-mix(in srgb, var(--warning-500) 15%, var(--surface));
+    color: var(--warning-400);
+    border-color: color-mix(in srgb, var(--warning-400) 20%, transparent);
   }
 
   .pulse {
     width: 8px;
     height: 8px;
-    background: currentColor;
     border-radius: 50%;
+    background: currentColor;
     position: relative;
   }
 
-  .pulse::after {
+  .pulse::before {
     content: '';
     position: absolute;
-    width: 100%;
-    height: 100%;
-    background: currentColor;
+    inset: -4px;
     border-radius: 50%;
-    animation: pulse 2s infinite;
+    background: currentColor;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    opacity: 0.5;
   }
 
-  .divider {
-    width: 1px;
-    height: 24px;
-    background: #e5e7eb;
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 0.5; }
   }
 
   .metrics {
-    display: flex;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 32px;
+    margin-left: 32px;
+    position: relative;
+  }
+
+  .metrics::before {
+    content: '';
+    position: absolute;
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 32px;
+    background: var(--border-color);
+    opacity: 0.5;
   }
 
   .metric {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .label {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--text-tertiary);
   }
 
   .value {
-    font-size: 13px;
-    color: #111827;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
   }
 
   .controls {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
+    margin-left: 24px;
+    position: relative;
+  }
+
+  .controls::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 24px;
+    background: var(--border-color);
+    opacity: 0.5;
   }
 
   .btn {
-    height: 32px;
-    padding: 0 12px;
-    display: flex;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    outline: none;
+    height: 40px;
+    min-width: 100px;
+    padding: 0 20px;
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    border-radius: var(--radius-lg);
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    background: white;
-    color: #374151;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.15s;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+    will-change: transform;
+    transform: translateZ(0);
+    cursor: pointer;
   }
 
-  .btn:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
+  .btn.pause {
+    color: var(--warning-600);
+    background: color-mix(in srgb, var(--warning-500) 8%, var(--surface));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning-500) 15%, transparent),
+                0 1px 2px color-mix(in srgb, var(--warning-500) 10%, transparent);
+  }
+
+  .btn.resume {
+    color: var(--success-600);
+    background: color-mix(in srgb, var(--success-500) 8%, var(--surface));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--success-500) 15%, transparent),
+                0 1px 2px color-mix(in srgb, var(--success-500) 10%, transparent);
   }
 
   .btn.stop {
-    color: #dc2626;
+    color: var(--error-600);
+    background: color-mix(in srgb, var(--error-500) 8%, var(--surface));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--error-500) 15%, transparent),
+                0 1px 2px color-mix(in srgb, var(--error-500) 10%, transparent);
   }
 
-  .btn.stop:hover {
-    background: #fef2f2;
-    border-color: #fecaca;
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: translateY(1px) scale(0.98);
   }
 
   .progress-bar {
-    height: 4px;
-    background: #f3f4f6;
-    border-radius: 2px;
+    height: 8px;
+    background: var(--surface-variant);
+    border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 12px;
+    position: relative;
+    box-shadow: inset 0 1px 2px color-mix(in srgb, black 5%, transparent);
+    margin-top: 32px;
   }
 
   .progress {
     height: 100%;
-    background: #2563eb;
-    border-radius: 2px;
+    background: var(--primary-500);
+    border-radius: 4px;
     transition: width 0.3s ease;
+    position: relative;
+    min-width: 8px;
+  }
+
+  .progress::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      var(--primary-400),
+      var(--primary-500)
+    );
+    opacity: 1;
+  }
+
+  .progress::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    animation: shine 2s linear infinite;
+  }
+
+  @keyframes shine {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
   }
 
   .current-stock {
-    font-size: 13px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--surface-variant) 50%, transparent);
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
   }
 
-  .current-stock .stock {
-    color: #111827;
-    font-weight: 500;
-  }
-
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(2.5);
-      opacity: 0;
-    }
+  .stock {
+    color: var(--text-primary);
+    font-weight: var(--font-medium);
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
   }
 
   .scroll-btn {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 16px;
+    right: 16px;
     border: none;
     background: transparent;
     cursor: pointer;
-    padding: 0;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    color: var(--primary-500);
+    font-size: 13px;
+    font-weight: var(--font-medium);
+    background: color-mix(in srgb, var(--primary-500) 8%, var(--surface));
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 2;
+  }
+
+  .scroll-btn:hover {
+    background: color-mix(in srgb, var(--primary-500) 12%, var(--surface));
+    transform: translateY(-1px);
+  }
+
+  .scroll-btn:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .scroll-icon {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    border-radius: 16px;
-    color: #2563eb;
-    font-size: 13px;
-    font-weight: 500;
-    background: rgba(37, 99, 235, 0.1);
     transition: all 0.3s ease;
   }
 
-  .scroll-icon span {
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: all 0.3s ease;
-  }
-
-  .scroll-btn:hover .scroll-icon {
-    background: rgba(37, 99, 235, 0.15);
-    padding-right: 16px;
-  }
-
-  .scroll-btn:hover .scroll-icon span {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  .scroll-btn:hover svg {
-    transform: translateY(2px);
-  }
-
-  .scroll-btn svg {
+  .scroll-icon svg {
+    width: 16px;
+    height: 16px;
     transition: transform 0.3s ease;
   }
 
-  .scroll-btn:hover .scroll-icon {
-    animation: none;
+  .scroll-btn:hover .scroll-icon svg {
+    transform: translateY(2px);
   }
 </style> 

@@ -14,11 +14,17 @@ export interface Stock {
 }
 
 export interface KLineData {
-  o: number
-  c: number
-  h: number
-  l: number
-  d: string
+  d: string;  // 交易时间
+  o: number;  // 开盘价
+  h: number;  // 最高价
+  l: number;  // 最低价
+  c: number;  // 收盘价
+  v: number;  // 成交量
+  e: number;  // 成交额
+  zf: number;  // 振幅
+  hs: number;  // 换手率
+  zd: number;  // 涨跌幅
+  zde: number;  // 涨跌额
 }
 
 export interface TestResult {
@@ -30,6 +36,10 @@ export interface TestResult {
   minPrice: number
   priceChange: number
   actualDirection: 'up' | 'down' | 'shock'
+  shortTermTrend: 'up' | 'down' | 'shock'
+  shortTermChange: number
+  longTermTrend: 'up' | 'down' | 'shock'
+  longTermChange: number
   daysCount: number
   klineData: KLineData[]  // 历史K线数据(前30天)
   futureData: KLineData[] // 未来K线数据(15天)
@@ -41,4 +51,23 @@ export interface Progress {
   total: number
   currentStock: string
   stage: string
+}
+
+export interface QuizOption {
+  id: string;
+  content: string;
+}
+
+export type StockQuiz = {
+  quizzes: Array<{
+    title: string
+    question: string
+    options: Array<{
+      id: string
+      content: string
+    }>
+    correctAnswer: string
+    explanation: string
+  }>
+  level: number
 }

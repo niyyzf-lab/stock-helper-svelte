@@ -140,7 +140,7 @@
   // 获取当前记录索引
   function getCurrentIndex(): number {
     if (!selectedRecord || !records.length) return -1
-    const index = records.findIndex(r => r.fileName === selectedRecord.fileName)
+    const index = records.findIndex(r => r.fileName === selectedRecord!.fileName)
     console.log('计算导航索引:', {
       selectedFileName: selectedRecord?.fileName,
       allFileNames: records.map(r => r.fileName),
@@ -383,7 +383,7 @@
         </button>
         <button 
           class="btn solid danger"
-          on:click={() => deleteRecord(recordToDelete)}
+          on:click={() => recordToDelete && deleteRecord(recordToDelete)}
         >
           删除
         </button>

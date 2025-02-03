@@ -109,10 +109,26 @@
   .strategy-selector {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 40px;
     height: 100%;
-    max-height: 80vh;
+    max-height: 85vh;
     transform-origin: center;
+    padding: 40px;
+    min-width: 800px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .strategy-selector::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, 
+      color-mix(in srgb, var(--primary-500) 2%, transparent),
+      transparent 60%
+    );
+    pointer-events: none;
   }
 
   /* 加载状态 */
@@ -121,17 +137,23 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
     min-height: 300px;
-    color: #6b7280;
+    color: var(--text-secondary);
+    padding: 48px;
+    text-align: center;
+    position: relative;
   }
 
   .loading-icon {
-    color: #2563eb;
+    color: var(--primary-500);
+    width: 48px;
+    height: 48px;
+    filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--primary-500) 30%, transparent));
   }
 
   .spin {
-    animation: spin 1s linear infinite;
+    animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 
   /* 错误状态 */
@@ -140,107 +162,149 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 24px;
     min-height: 300px;
     text-align: center;
     transform-origin: center;
+    padding: 48px;
+    color: var(--text-secondary);
+    position: relative;
   }
 
   .error-icon {
-    color: #ef4444;
+    color: var(--error-500);
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--error-500) 30%, transparent));
   }
 
   /* 策略网格 */
   .strategies-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
-    width: 100%;
-    padding: 24px;
-    padding-bottom: 0;
-    overflow-y: auto;
-    min-height: 0;
-    /* 自定义滚动条样式 */
-    scrollbar-width: thin;
-    scrollbar-color: #e5e7eb transparent;
-  }
-
-  .strategies-grid::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .strategies-grid::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 4px;
-  }
-
-  .strategies-grid::-webkit-scrollbar-thumb {
-    background-color: #e5e7eb;
-    border-radius: 3px;
-    border: 1px solid transparent;
-    background-clip: padding-box;
-  }
-
-  .strategies-grid::-webkit-scrollbar-thumb:hover {
-    background-color: #d1d5db;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+    margin-bottom: 32px;
+    position: relative;
   }
 
   /* 策略卡片 */
   .strategy-card {
     position: relative;
+    padding: 32px;
+    background: color-mix(in srgb, var(--surface) 97%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: flex-start;
-    gap: 20px;
-    padding: 24px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    cursor: pointer;
-    text-align: left;
-    transform-origin: center;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    width: 100%;
-    min-height: 140px;
+    gap: 24px;
+    min-height: 180px;
+    height: 180px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
     overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .strategy-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left,
+      color-mix(in srgb, var(--primary-500) 3%, transparent),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .strategy-card:hover::before {
+    opacity: 1;
   }
 
   .strategy-card:hover {
-    transform: translateY(-2px) scale(1.02);
-    border-color: #93c5fd;
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
-    background: linear-gradient(to right bottom, #ffffff, #f8fafc);
+    background: color-mix(in srgb, var(--surface-variant) 97%, transparent);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg),
+                0 0 0 1px color-mix(in srgb, var(--primary-500) 8%, transparent);
+  }
+
+  .strategy-card:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .strategy-card.selected {
-    background: linear-gradient(to right bottom, #f0f7ff, #e0e7ff);
-    border-color: #2563eb;
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+    background: color-mix(in srgb, var(--primary-500) 8%, var(--surface));
+    border: 2px solid var(--primary-500);
+    padding: 31px;
+    box-shadow: 0 0 0 1px var(--primary-500),
+                0 0 0 4px color-mix(in srgb, var(--primary-500) 20%, transparent),
+                0 8px 24px -8px color-mix(in srgb, var(--primary-500) 30%, transparent);
+    transform: translateY(-3px);
+  }
+
+  :global(.dark) .strategy-card.selected {
+    background: color-mix(in srgb, var(--primary-500) 15%, var(--surface));
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 1px var(--primary-400),
+                0 0 0 4px color-mix(in srgb, var(--primary-400) 20%, transparent),
+                0 8px 24px -8px color-mix(in srgb, var(--primary-400) 30%, transparent);
   }
 
   .strategy-icon {
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    background: #f3f4f6;
-    border-radius: 14px;
-    color: #2563eb;
+    background: color-mix(in srgb, var(--primary-500) 12%, var(--surface));
+    border-radius: var(--radius-xl);
+    color: var(--primary-500);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    transform-origin: center;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-500) 15%, transparent),
+                0 4px 12px -2px color-mix(in srgb, var(--primary-500) 20%, transparent);
+    position: relative;
+    z-index: 1;
+  }
+
+  .strategy-icon::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: radial-gradient(circle at 30% 30%,
+      color-mix(in srgb, var(--primary-500) 10%, transparent),
+      transparent 70%
+    );
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .strategy-card:hover .strategy-icon::before {
+    opacity: 1;
   }
 
   .strategy-card:hover .strategy-icon {
-    transform: scale(1.1) rotate(-5deg);
-    background: #e0e7ff;
+    transform: scale(1.1) rotate(5deg);
+    background: color-mix(in srgb, var(--primary-500) 18%, var(--surface));
+    color: var(--primary-600);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-500) 20%, transparent),
+                0 8px 16px -4px color-mix(in srgb, var(--primary-500) 25%, transparent);
   }
 
   .strategy-card.selected .strategy-icon {
-    background: white;
-    transform: scale(1.1) rotate(-5deg);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    background: color-mix(in srgb, var(--primary-500) 25%, var(--surface));
+    color: var(--primary-500);
+    box-shadow: 0 0 0 2px var(--surface),
+                0 0 0 4px color-mix(in srgb, var(--primary-500) 30%, transparent),
+                0 8px 16px -4px color-mix(in srgb, var(--primary-500) 30%, transparent);
   }
 
   .strategy-info {
@@ -249,99 +313,132 @@
     transform-origin: left;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+    height: 120px;
   }
 
   .strategy-name {
-    display: block;
-    font-size: 16px;
-    font-weight: 600;
-    color: #111827;
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 2px color-mix(in srgb, var(--shadow-color) 10%, transparent);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .strategy-desc {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 14px;
-    color: #6b7280;
-    line-height: 1.6;
+    text-overflow: ellipsis;
+    height: calc(1.7em * 2);
+    margin: 0;
+    padding: 0;
   }
 
   .check-icon {
     position: absolute;
-    top: 24px;
-    right: 24px;
-    width: 20px;
-    height: 20px;
-    color: #2563eb;
+    top: 28px;
+    right: 28px;
+    width: 28px;
+    height: 28px;
+    color: var(--primary-500);
     opacity: 0;
-    transform: scale(0.5);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    background: white;
+    transform: scale(0.5) rotate(-90deg);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: var(--surface);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    box-shadow: var(--shadow-md),
+                0 0 0 2px color-mix(in srgb, var(--primary-500) 15%, transparent),
+                0 4px 12px -2px color-mix(in srgb, var(--primary-500) 20%, transparent);
+    z-index: 2;
   }
 
   .strategy-card.selected .check-icon {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) rotate(0);
   }
 
   /* 按钮组 */
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding: 24px;
-    padding-top: 20px;
-    border-top: 1px solid #e5e7eb;
-    background: white;
-    flex-shrink: 0;
+    gap: 20px;
+    margin-top: auto;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-color);
+    position: relative;
   }
 
   .btn {
-    height: 38px;
-    padding: 0 20px;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 48px;
+    padding: 0 32px;
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 120px;
+    letter-spacing: -0.01em;
+    touch-action: manipulation;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
+      color-mix(in srgb, var(--primary-500) 20%, transparent),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .btn:hover::before {
+    opacity: 0.8;
+    --x: var(--hover-x, 50%);
+    --y: var(--hover-y, 50%);
   }
 
   .btn.outline {
-    color: #4b5563;
-    background: white;
-    border: 1px solid #e5e7eb;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
   }
 
   .btn.outline:hover {
-    color: #111827;
-    border-color: #d1d5db;
-    background: #f9fafb;
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+    background: var(--hover-bg);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 
   .btn.solid {
     color: white;
-    background: #2563eb;
+    background: var(--primary-500);
     border: none;
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--primary-500) 30%, transparent),
+                0 0 0 1px color-mix(in srgb, var(--primary-500) 20%, transparent);
   }
 
   .btn.solid:hover:not(:disabled) {
-    background: #1d4ed8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    background: var(--primary-600);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-500) 30%, transparent),
+                0 0 0 1px color-mix(in srgb, var(--primary-500) 30%, transparent);
   }
 
   .btn.solid:disabled {
@@ -350,12 +447,11 @@
   }
 
   .btn:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.97);
   }
 
   /* 动画 */
   @keyframes spin {
-    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
 
@@ -364,5 +460,15 @@
     20%, 80% { transform: translate3d(2px, 0, 0); }
     30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
     40%, 60% { transform: translate3d(4px, 0, 0); }
+  }
+
+  /* 确保选中和悬停状态的过渡更加平滑 */
+  .strategy-card,
+  .strategy-card:hover,
+  .strategy-card.selected,
+  .strategy-card:active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0s linear,
+                border 0s linear;
   }
 </style> 

@@ -1,13 +1,6 @@
-package api
+package types
 
-// StockBasic 股票基本信息
-type StockBasic struct {
-	Code   string `json:"code"`   // 股票代码
-	Name   string `json:"name"`   // 股票名称
-	Market string `json:"market"` // 市场类型（主板、创业板等）
-}
-
-// Index 指数信息
+// Index 股票指数信息
 type Index struct {
 	Code     string `json:"dm"`  // 指数代码
 	Name     string `json:"mc"`  // 指数名称
@@ -28,28 +21,6 @@ type KLineData struct {
 	Change    float64 `json:"zd"`  // 涨跌幅(%)
 	ChangeAmt float64 `json:"zde"` // 涨跌额(元)
 }
-
-// KLineFreq K线周期
-type KLineFreq string
-
-const (
-	FREQ_5MIN        KLineFreq = "5m"  // 5分钟
-	FREQ_15MIN       KLineFreq = "15m" // 15分钟
-	FREQ_30MIN       KLineFreq = "30m" // 30分钟
-	FREQ_60MIN       KLineFreq = "60m" // 60分钟
-	FREQ_DAILY       KLineFreq = "dn"  // 日线(未复权)
-	FREQ_DAILY_QFQ   KLineFreq = "dq"  // 日线(前复权)
-	FREQ_DAILY_HFQ   KLineFreq = "dh"  // 日线(后复权)
-	FREQ_WEEKLY      KLineFreq = "wn"  // 周线(未复权)
-	FREQ_WEEKLY_QFQ  KLineFreq = "wq"  // 周线(前复权)
-	FREQ_WEEKLY_HFQ  KLineFreq = "wh"  // 周线(后复权)
-	FREQ_MONTHLY     KLineFreq = "mn"  // 月线(未复权)
-	FREQ_MONTHLY_QFQ KLineFreq = "mq"  // 月线(前复权)
-	FREQ_MONTHLY_HFQ KLineFreq = "mh"  // 月线(后复权)
-	FREQ_YEARLY      KLineFreq = "yn"  // 年线(未复权)
-	FREQ_YEARLY_QFQ  KLineFreq = "yq"  // 年线(前复权)
-	FREQ_YEARLY_HFQ  KLineFreq = "yh"  // 年线(后复权)
-)
 
 // RealtimeData 实时交易数据
 type RealtimeData struct {
@@ -92,4 +63,40 @@ type HistoricalTransaction struct {
 	SmallNetInflow  float64 `json:"xdjlr"`  // 小单净流入(元)
 	RetailInflow    float64 `json:"sdlr"`   // 散单流入(元)
 	RetailNetInflow float64 `json:"sdjlr"`  // 散单净流入(元)
+}
+
+// MainForceMinute 主力资金分钟走势
+type MainForceMinute struct {
+	Time             string  `json:"t"`     // 时间yyyy-MM-dd HH:mm:ss
+	ChangePercent    float64 `json:"zdf"`   // 涨跌幅(%)
+	MainForceInflow  float64 `json:"lrzj"`  // 主力流入(元)
+	InflowRate       float64 `json:"lrl"`   // 主力流入率(%)
+	MainForceOutflow float64 `json:"lczj"`  // 主力流出(元)
+	NetInflow        float64 `json:"jlr"`   // 主力净流入(元)
+	NetInflowRate    float64 `json:"jlrl"`  // 主力净流入率(%)
+	RetailInflowRate float64 `json:"shlrl"` // 散户流入率(%)
+}
+
+// CapitalFlow 资金流向趋势
+type CapitalFlow struct {
+	Time                string  `json:"t"`      // 时间yyyy-MM-dd
+	ChangePercent       float64 `json:"zdf"`    // 涨跌幅(%)
+	NetInflow           float64 `json:"jlr"`    // 净流入(元)
+	NetInflowRate       float64 `json:"jlrl"`   // 净流入率(%)
+	MainForceNetInflow  float64 `json:"zljlr"`  // 主力净流入(元)
+	MainForceInflowRate float64 `json:"zljlrl"` // 主力净流入率(%)
+	IndustryNetInflow   float64 `json:"hyjlr"`  // 行业净流入(元)
+	IndustryInflowRate  float64 `json:"hyjlrl"` // 行业净流入率(%)
+	TurnoverRate        float64 `json:"hsl"`    // 换手率(%)
+}
+
+// MainForcePhase 阶段主力动向
+type MainForcePhase struct {
+	Time           string  `json:"t"`      // 时间yyyy-MM-dd
+	NetInflow3Day  float64 `json:"jlr3"`   // 近3日主力净流入(元)
+	NetInflow5Day  float64 `json:"jlr5"`   // 近5日主力净流入(元)
+	NetInflow10Day float64 `json:"jlr10"`  // 近10日主力净流入(元)
+	Rate3Day       float64 `json:"jlrl3"`  // 近3日主力净流入率(%)
+	Rate5Day       float64 `json:"jlrl5"`  // 近5日主力净流入率(%)
+	Rate10Day      float64 `json:"jlrl10"` // 近10日主力净流入率(%)
 }

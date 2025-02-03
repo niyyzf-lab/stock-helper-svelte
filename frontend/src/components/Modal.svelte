@@ -76,7 +76,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: color-mix(in srgb, var(--overlay-bg) 60%, transparent);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
@@ -93,15 +93,11 @@
 
   .modal-content {
     position: relative;
-    width: 90%;
     max-width: 90vw;
-    min-width: min-content;
     max-height: 90vh;
-    background: white;
+    background: var(--surface);
     border-radius: var(--radius-lg);
-    box-shadow: 
-      0 10px 25px -5px rgba(0, 0, 0, 0.1),
-      0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -113,7 +109,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.9);
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     flex-shrink: 0;
@@ -153,6 +149,23 @@
     overflow: auto;
     display: flex;
     flex-direction: column;
+  }
+
+  /* 暗色模式特定样式 */
+  :global(.dark) .modal-overlay {
+    background: color-mix(in srgb, var(--overlay-bg) 80%, transparent);
+  }
+
+  :global(.dark) .modal-content {
+    box-shadow: var(--shadow-lg);
+  }
+
+  :global(.dark) .modal-header {
+    background: color-mix(in srgb, var(--surface) 95%, transparent);
+  }
+
+  :global(.dark) .close-btn:hover {
+    background: color-mix(in srgb, var(--hover-bg) 80%, transparent);
   }
 
   /* 确保模态窗口在所有内容之上 */

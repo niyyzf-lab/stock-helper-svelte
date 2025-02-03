@@ -6,7 +6,8 @@ import (
 	"sync"
 
 	"stock-helper-svelte/backend/api"
-	"stock-helper-svelte/backend/types"
+	"stock-helper-svelte/backend/api/types" // 确保这个导入路径正确
+	"stock-helper-svelte/backend/indicators"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -55,7 +56,7 @@ func NewWorker(id int, strategy *Strategy, metrics *ExecutionMetrics, ctx contex
 }
 
 // ProcessStock 处理单个股票
-func (w *Worker) ProcessStock(stock api.Index) error {
+func (w *Worker) ProcessStock(stock types.Index) error {
 	select {
 	case <-w.ctx.Done():
 		return NewEngineError(ErrWorkerClosed, "worker context cancelled", w.ctx.Err())
@@ -122,13 +123,28 @@ func (w *Worker) registerAPIFunctions() {
 	// 注册更新进度函数
 	w.luaState.SetField(apiTable, "updateProgress", w.luaState.NewFunction(w.luaUpdateProgress))
 
+	// 注册技术指标相关函数
+	indicatorTable := w.luaState.NewTable()
+
+	// 注册RSI函数
+	w.luaState.SetField(indicatorTable, "calculateRSI", w.luaState.NewFunction(w.luaCalculateRSI))
+
+	// 注册MACD函数
+	w.luaState.SetField(indicatorTable, "calculateMACD", w.luaState.NewFunction(w.luaCalculateMACD))
+
+	// 注册MA函数
+	w.luaState.SetField(indicatorTable, "calculateMA", w.luaState.NewFunction(w.luaCalculateMA))
+
+	// 将indicator表设置为api表的一个字段
+	w.luaState.SetField(apiTable, "indicator", indicatorTable)
+
 	// 将API表设置为全局变量
 	w.luaState.SetGlobal("api", apiTable)
 }
 
 // luaGetIndexList 获取指数列表的Lua包装函数
 func (w *Worker) luaGetIndexList(L *lua.LState) int {
-	indices, err := w.apiClient.GetIndexList()
+	indices, err := w.apiClient.Market.GetIndexList(context.Background())
 	if err != nil {
 		luaErr := NewAPIRequestError("getIndexList", err)
 		L.Push(lua.LNil)
@@ -162,7 +178,7 @@ func (w *Worker) luaGetKLineData(L *lua.LState) int {
 		return 2
 	}
 
-	data, err := w.apiClient.GetKLineData(code, api.KLineFreq(freq))
+	data, err := w.apiClient.Market.GetKLineData(context.Background(), code, types.KLineFreq(freq))
 	if err != nil {
 		luaErr := NewAPIRequestError("getKLineData", err)
 		L.Push(lua.LNil)
@@ -201,7 +217,7 @@ func (w *Worker) luaSendStockSignal(L *lua.LState) int {
 	change := float64(L.ToNumber(5))
 	reason := L.ToString(6)
 
-	signal := types.StockSignal{
+	signal := StockSignal{
 		Code:     code,
 		Name:     name,
 		Price:    price,
@@ -224,6 +240,113 @@ func (w *Worker) luaUpdateProgress(L *lua.LState) int {
 	return 1
 }
 
+// luaCalculateRSI RSI指标的Lua包装函数
+func (w *Worker) luaCalculateRSI(L *lua.LState) int {
+	// 检查参数
+	prices := luaTableToFloat64Slice(L.CheckTable(1))
+	period := L.CheckInt(2)
+
+	// 计算RSI
+	rsi, err := indicators.CalculateRSI(prices, period)
+	if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+
+	// 创建返回表
+	rsiTable := L.NewTable()
+	for i, v := range rsi {
+		rsiTable.RawSetInt(i+1, lua.LNumber(v))
+	}
+
+	L.Push(rsiTable)
+	L.Push(lua.LNil)
+	return 2
+}
+
+// luaCalculateMACD MACD指标的Lua包装函数
+func (w *Worker) luaCalculateMACD(L *lua.LState) int {
+	// 检查参数
+	prices := luaTableToFloat64Slice(L.CheckTable(1))
+	shortPeriod := L.CheckInt(2)
+	longPeriod := L.CheckInt(3)
+	signalPeriod := L.CheckInt(4)
+
+	// 计算MACD
+	result, err := indicators.CalculateMACD(prices, shortPeriod, longPeriod, signalPeriod)
+	if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+
+	// 创建返回表
+	macdTable := L.NewTable()
+
+	// 设置DIF数组
+	difTable := L.NewTable()
+	for i, v := range result.DIF {
+		difTable.RawSetInt(i+1, lua.LNumber(v))
+	}
+	L.SetField(macdTable, "dif", difTable)
+
+	// 设置DEA数组
+	deaTable := L.NewTable()
+	for i, v := range result.DEA {
+		deaTable.RawSetInt(i+1, lua.LNumber(v))
+	}
+	L.SetField(macdTable, "dea", deaTable)
+
+	// 设置MACD数组
+	macdArrayTable := L.NewTable()
+	for i, v := range result.MACD {
+		macdArrayTable.RawSetInt(i+1, lua.LNumber(v))
+	}
+	L.SetField(macdTable, "macd", macdArrayTable)
+
+	L.Push(macdTable)
+	L.Push(lua.LNil)
+	return 2
+}
+
+// luaCalculateMA MA指标的Lua包装函数
+func (w *Worker) luaCalculateMA(L *lua.LState) int {
+	// 检查参数
+	prices := luaTableToFloat64Slice(L.CheckTable(1))
+	maType := indicators.MAType(L.CheckString(2))
+	period := L.CheckInt(3)
+
+	// 计算MA
+	result, err := indicators.CalculateMA(prices, maType, period)
+	if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	}
+
+	// 创建返回表
+	maTable := L.NewTable()
+	for i, v := range result {
+		maTable.RawSetInt(i+1, lua.LNumber(v))
+	}
+
+	L.Push(maTable)
+	L.Push(lua.LNil)
+	return 2
+}
+
+// luaTableToFloat64Slice 辅助函数：将Lua表转换为float64切片
+func luaTableToFloat64Slice(table *lua.LTable) []float64 {
+	result := make([]float64, 0, table.Len())
+	table.ForEach(func(_ lua.LValue, value lua.LValue) {
+		if num, ok := value.(lua.LNumber); ok {
+			result = append(result, float64(num))
+		}
+	})
+	return result
+}
+
 // Close 关闭工作单元
 func (w *Worker) Close() {
 	if w.luaState != nil {
@@ -234,7 +357,7 @@ func (w *Worker) Close() {
 // WorkerPool 工作池
 type WorkerPool struct {
 	workers       []*Worker
-	stockChan     chan api.Index
+	stockChan     chan types.Index
 	errorChan     chan error
 	metrics       *ExecutionMetrics
 	apiClient     *api.Client
@@ -274,7 +397,7 @@ func NewWorkerPool(size int, strategy *Strategy, metrics *ExecutionMetrics, ctx 
 
 	pool := &WorkerPool{
 		workers:       make([]*Worker, size),
-		stockChan:     make(chan api.Index, size*2),
+		stockChan:     make(chan types.Index, size*2),
 		errorChan:     make(chan error, size),
 		metrics:       metrics,
 		apiClient:     apiClient,
@@ -297,7 +420,7 @@ func NewWorkerPool(size int, strategy *Strategy, metrics *ExecutionMetrics, ctx 
 }
 
 // Submit 提交股票到工作池
-func (p *WorkerPool) Submit(stock api.Index) {
+func (p *WorkerPool) Submit(stock types.Index) {
 	p.closeMutex.Lock()
 	if p.closed || p.stockChan == nil {
 		p.closeMutex.Unlock()

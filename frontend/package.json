@@ -21,15 +21,17 @@
   },
   "dependencies": {
     "@highcharts/svelte": "^1.1.1",
+    "@sveltejs/kit": "^2.16.1",
     "echarts": "^5.6.0",
     "highcharts": "^12.1.2",
-    "lightweight-charts": "^4.2.3",
+    "lightweight-charts": "^5.0.1",
     "lucide-svelte": "^0.474.0",
     "pinyin-match": "^1.2.6",
     "pinyin-pro": "^3.26.0",
     "svelte-echarts": "^1.0.0-rc3",
     "svelte-french-toast": "^1.2.0",
     "svelte-spa-router": "^4.0.1",
+    "svelte-splitpanes": "^8.0.9",
     "tippy.js": "^6.3.7"
   }
 }

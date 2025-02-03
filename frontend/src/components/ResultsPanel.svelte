@@ -200,9 +200,9 @@
 
 <style>
   .results-panel {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    background: white;
+    background: var(--surface);
     margin-top: 16px;
     height: calc(100vh - 90px);
     max-height: calc(100vh - 90px);
@@ -211,8 +211,11 @@
   }
 
   .panel-header {
-    padding: 16px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .title-group {
@@ -228,9 +231,9 @@
   }
 
   h2 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #111827;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
     margin: 0;
   }
 
@@ -263,18 +266,18 @@
   .stat {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .label {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--text-secondary);
   }
 
   .value {
     font-size: 13px;
     font-weight: 500;
-    color: #111827;
+    color: var(--text-primary);
   }
 
   .value.highlight {
@@ -476,5 +479,22 @@
   :global(.results-panel ::-webkit-scrollbar-thumb) {
     background-color: #cbd5e1;
     border-radius: 2px;
+  }
+
+  /* 暗色模式特定样式 */
+  :global(.dark) .results-table th {
+    background: color-mix(in srgb, var(--surface-variant) 80%, transparent);
+  }
+
+  :global(.dark) .stock-code {
+    color: var(--primary-400);
+  }
+
+  :global(.dark) .change.positive {
+    color: var(--success-400);
+  }
+
+  :global(.dark) .change.negative {
+    color: var(--error-400);
   }
 </style> 

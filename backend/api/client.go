@@ -4,29 +4,26 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"sort"
+	"stock-helper-svelte/backend/api/company"
+	"stock-helper-svelte/backend/api/financial"
+	"stock-helper-svelte/backend/api/market"
 
 	"strings"
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
+	"stock-helper-svelte/backend/api/types"
 
 	"github.com/tidwall/buntdb"
+	"golang.org/x/time/rate"
 )
 
 const (
-	EndpointIndexList = "hslt/list"  // 指数列表接口
-	EndpointKLine     = "hszbl/fsjy" // K线数据接口
-	EndpointRealTime  = "hsrl/ssjy"  // 实时交易数据接口
-	EndpointHistTrans = "hsmy/lscj"  // 历史成交分布接口
-
 	// HTTP相关常量
 	DefaultTimeout        = 30 * time.Second // 默认超时时间
 	BackupTimeout         = 2 * time.Second  // 备用接口超时时间
@@ -202,7 +199,10 @@ type Client struct {
 	httpClient *http.Client
 	db         *buntdb.DB
 	pool       *WorkerPool
-	cacheMu    sync.RWMutex // 用于缓存操作的互斥锁
+	cacheMu    sync.RWMutex
+	Company    *company.Client
+	Market     *market.Client
+	Financial  *financial.Client
 }
 
 func NewClient(baseURL, licence string, db *buntdb.DB) (*Client, error) {
@@ -256,6 +256,11 @@ func NewClient(baseURL, licence string, db *buntdb.DB) (*Client, error) {
 	// client.ForceCleanCache()
 	// 启动定期清理过期数据的goroutine
 	go client.cleanupLoop()
+
+	// 初始化子客户端
+	client.Company = company.NewClient(baseURL, licence, client.Request)
+	client.Market = market.NewClient(baseURL, licence, client.Request)
+	client.Financial = financial.NewClient(baseURL, licence, client.Request)
 
 	return client, nil
 }
@@ -377,33 +382,15 @@ func (c *Client) setToCache(key string, data []byte, ttl time.Duration) error {
 	})
 }
 
-// sortKLineByDate 按日期排序K线数据(旧->新)
-func sortKLineByDate(data []KLineData) {
-	sort.Slice(data, func(i, j int) bool {
-		// 将字符串日期转换为time.Time
-		timeI, err := time.Parse("2006-01-02", data[i].Time)
-		if err != nil {
-			// 移除 log.Printf("解析日期失败[%s]: %v\n", data[i].Time, err)
-			return false
-		}
-		timeJ, err := time.Parse("2006-01-02", data[j].Time)
-		if err != nil {
-			// 移除 log.Printf("解析日期失败[%s]: %v\n", data[j].Time, err)
-			return false
-		}
-		return timeI.Before(timeJ)
-	})
-}
-
 // getCacheTTL 根据数据类型和频率获取缓存时间
-func (c *Client) getCacheTTL(endpoint string, freq KLineFreq) time.Duration {
+func (c *Client) getCacheTTL(endpoint string, freq types.KLineFreq) time.Duration {
 	now := time.Now()
 	today16 := time.Date(now.Year(), now.Month(), now.Day(), 16, 0, 0, 0, now.Location())
 
 	// 指数列表和日线数据共用相同的TTL逻辑
-	if strings.Contains(endpoint, EndpointIndexList) ||
-		(strings.Contains(endpoint, EndpointKLine) &&
-			(freq == FREQ_DAILY_HFQ || freq == FREQ_WEEKLY_HFQ || freq == FREQ_MONTHLY_HFQ || freq == FREQ_YEARLY_HFQ)) {
+	if strings.Contains(endpoint, "hslt/list") ||
+		(strings.Contains(endpoint, "hszbl/fsjy") &&
+			(freq == types.FREQ_DAILY_HFQ || freq == types.FREQ_WEEKLY_HFQ || freq == types.FREQ_MONTHLY_HFQ || freq == types.FREQ_YEARLY_HFQ)) {
 		if now.After(today16) {
 			return today16.Add(24 * time.Hour).Sub(now)
 		}
@@ -411,15 +398,15 @@ func (c *Client) getCacheTTL(endpoint string, freq KLineFreq) time.Duration {
 	}
 
 	// K线数据根据频率设置缓存时间
-	if strings.Contains(endpoint, EndpointKLine) {
+	if strings.Contains(endpoint, "hszbl/fsjy") {
 		switch freq {
-		case FREQ_5MIN:
+		case types.FREQ_5MIN:
 			return CacheTime5Min
-		case FREQ_15MIN:
+		case types.FREQ_15MIN:
 			return CacheTime15Min
-		case FREQ_30MIN:
+		case types.FREQ_30MIN:
 			return CacheTime30Min
-		case FREQ_60MIN:
+		case types.FREQ_60MIN:
 			return CacheTime60Min
 		}
 	}
@@ -428,7 +415,7 @@ func (c *Client) getCacheTTL(endpoint string, freq KLineFreq) time.Duration {
 }
 
 // Request 发送请求并返回响应数据（使用工作池）
-func (c *Client) Request(ctx context.Context, path string, freq KLineFreq) ([]byte, error) {
+func (c *Client) Request(ctx context.Context, path string, freq types.KLineFreq) ([]byte, error) {
 	cacheKey := c.getCacheKey(path)
 
 	// 使用读写锁保护缓存操作
@@ -466,102 +453,6 @@ func (c *Client) Request(ctx context.Context, path string, freq KLineFreq) ([]by
 	}
 
 	return nil, fmt.Errorf("所有接口请求失败，最后错误: %v", err)
-}
-
-// GetIndexList 获取指数列表
-func (c *Client) GetIndexList() ([]Index, error) {
-	body, err := c.Request(context.Background(), EndpointIndexList, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get index list: %v", err)
-	}
-
-	var indices []Index
-	if err := json.Unmarshal(body, &indices); err != nil {
-		return nil, fmt.Errorf("failed to parse index list: %v", err)
-	}
-
-	return indices, nil
-}
-
-// GetKLineData 获取K线数据
-func (c *Client) GetKLineData(code string, freq KLineFreq) ([]KLineData, error) {
-	endpoint := fmt.Sprintf("%s/%s/%s", EndpointKLine, code, freq)
-
-	// 获取缓存key
-	cacheKey := c.getCacheKey(endpoint)
-	// 尝试从缓存获取，如果存在就直接返回
-	if data, err := c.getFromCache(cacheKey); err == nil {
-		var klineData []KLineData
-		if err := json.Unmarshal(data, &klineData); err == nil {
-			// 验证数据时效性
-			if len(klineData) > 0 {
-				lastDate := klineData[len(klineData)-1].Time
-				lastTime, err := time.Parse("2006-01-02", lastDate)
-				if err == nil {
-					today := time.Now()
-					// 如果是交易日且已过16点，但数据不是今天的，强制更新
-					if today.Hour() >= 16 && lastTime.Before(today) {
-						goto FetchNew
-					}
-				}
-			}
-			return klineData, nil
-		}
-	}
-
-FetchNew:
-	body, err := c.Request(context.Background(), endpoint, freq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kline data: %v", err)
-	}
-
-	var klineData []KLineData
-	if err := json.Unmarshal(body, &klineData); err != nil {
-		return nil, fmt.Errorf("failed to parse kline data: %v", err)
-	}
-
-	sortKLineByDate(klineData)
-	return klineData, nil
-}
-
-// GetRealtimeData 获取实时交易数据
-func (c *Client) GetRealtimeData(code string) (RealtimeData, error) {
-	endpoint := fmt.Sprintf("%s/%s", EndpointRealTime, code)
-
-	body, err := c.Request(context.Background(), endpoint, "")
-	if err != nil {
-		return RealtimeData{}, fmt.Errorf("failed to get realtime data: %v", err)
-	}
-
-	// API 返回的是一个对象,而不是数组
-	var realtimeData RealtimeData
-	if err := json.Unmarshal(body, &realtimeData); err != nil {
-		return RealtimeData{}, fmt.Errorf("failed to parse realtime data: %v", err)
-	}
-
-	return realtimeData, nil
-}
-
-// GetHistoricalTransactions 获取历史成交分布数据
-func (c *Client) GetHistoricalTransactions(code string) ([]HistoricalTransaction, error) {
-	endpoint := fmt.Sprintf("%s/%s", EndpointHistTrans, code)
-
-	body, err := c.Request(context.Background(), endpoint, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get historical transactions: %v", err)
-	}
-
-	var transactions []HistoricalTransaction
-	if err := json.Unmarshal(body, &transactions); err != nil {
-		return nil, fmt.Errorf("failed to parse historical transactions: %v", err)
-	}
-
-	// 按时间倒序排序（新->旧）
-	sort.Slice(transactions, func(i, j int) bool {
-		return transactions[i].Time > transactions[j].Time
-	})
-
-	return transactions, nil
 }
 
 // cleanAllCache 清理所有缓存

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"stock-helper-svelte/backend/api"
-	"stock-helper-svelte/backend/types"
 )
 
 // Strategy 策略定义
@@ -47,9 +46,9 @@ type ExecutionStats struct {
 
 // StatusUpdater 状态更新接口
 type StatusUpdater interface {
-	UpdateStatus(status ExecutionStatus)
+	UpdateStatus(ExecutionStatus)
 	UpdateProgress(processedStocks int, currentStock string)
-	AddSignal(signal types.StockSignal)
+	AddSignal(StockSignal)
 }
 
 // ExecutionEngine 执行引擎接口
@@ -69,4 +68,14 @@ type ExecutionEngine interface {
 
 	// 资源清理
 	Close() error
+}
+
+// StockSignal 股票信号
+type StockSignal struct {
+	Code     string  `json:"code"`     // 股票代码
+	Name     string  `json:"name"`     // 股票名称
+	Price    float64 `json:"price"`    // 当前价格
+	Turnover float64 `json:"turnover"` // 换手率
+	Change   float64 `json:"change"`   // 涨跌幅
+	Reason   string  `json:"reason"`   // 信号原因
 }

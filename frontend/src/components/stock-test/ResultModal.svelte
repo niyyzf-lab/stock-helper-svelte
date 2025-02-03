@@ -392,6 +392,20 @@
     }, 800)
   }
 
+  // 添加趋势文本转换函数
+  function getTrendText(trend: 'up' | 'down' | 'shock'): string {
+    switch (trend) {
+      case 'up':
+        return '上涨';
+      case 'down':
+        return '下跌';
+      case 'shock':
+        return '震荡';
+      default:
+        return '未知';
+    }
+  }
+
   onDestroy(() => {
     mounted = false
     if (animationTimer) {
@@ -413,7 +427,10 @@
 <Modal 
   show={show}
   title="预测结果"
-  on:close={onClose}
+  on:close={() => {
+    console.log('关闭结果模态框');
+    onClose();
+  }}
   class_="result-modal"
 >
   <div class="result-container">
@@ -449,34 +466,57 @@
           </div>
 
           <div class="result-grid" class:fade-in={showGrid}>
+            <!-- 您的预测 -->
             <div class="result-item">
               <div class="item-label">您的预测</div>
               <div class="item-value prediction {result?.direction}">
-                {#if result?.direction === 'up'}上涨
-                {:else if result?.direction === 'down'}下跌
-                {:else}震荡{/if}
+                <span class="trend-name">
+                  {#if result?.direction === 'up'}上涨
+                  {:else if result?.direction === 'down'}下跌
+                  {:else}震荡{/if}
+                </span>
               </div>
             </div>
 
+            <!-- 短期趋势 -->
             <div class="result-item">
-              <div class="item-label">实际走势</div>
-              <div class="item-value prediction {result?.actualDirection}">
-                {#if result?.actualDirection === 'up'}上涨
-                {:else if result?.actualDirection === 'down'}下跌
-                {:else}震荡{/if}
+              <div class="item-label">短期趋势 (5天)</div>
+              <div class="item-value prediction {result?.shortTermTrend}">
+                <span class="trend-name">
+                  {#if result?.shortTermTrend === 'up'}上涨
+                  {:else if result?.shortTermTrend === 'down'}下跌
+                  {:else}震荡{/if}
+                </span>
+                <span class="trend-change">
+                  {((result?.shortTermChange || 0) * 100).toFixed(2)}%
+                </span>
               </div>
             </div>
 
-            <div class="result-item highlight">
-              <div class="item-label">涨跌幅</div>
+            <!-- 长期趋势 -->
+            <div class="result-item">
+              <div class="item-label">长期趋势 (15天)</div>
+              <div class="item-value prediction {result?.longTermTrend}">
+                <span class="trend-name">
+                  {#if result?.longTermTrend === 'up'}上涨
+                  {:else if result?.longTermTrend === 'down'}下跌
+                  {:else}震荡{/if}
+                </span>
+                <span class="trend-change">
+                  {((result?.longTermChange || 0) * 100).toFixed(2)}%
+                </span>
+              </div>
+            </div>
+
+            <!-- 总涨跌幅 -->
+            <div class="result-item">
+              <div class="item-label">总涨跌幅</div>
               <div class="item-value change {priceChangeClass}">
-                {result?.priceChange ? (result.priceChange * 100).toFixed(2) : 0}%
+                <span class="trend-name">涨跌幅</span>
+                <span class="trend-change">
+                  {result?.priceChange ? (result.priceChange * 100).toFixed(2) : 0}%
+                </span>
               </div>
-            </div>
-
-            <div class="result-item">
-              <div class="item-label">观察天数</div>
-              <div class="item-value">{result?.daysCount || 0}天</div>
             </div>
           </div>
         </div>
@@ -500,7 +540,7 @@
 <style>
   .result-container {
     width: 1080px;
-    min-height: 680px;
+
     height: 100%;
     padding: 0;
     background: #fff;
@@ -545,10 +585,10 @@
   /* 结果区域 */
   .info-section {
     width: 360px;
-    padding: 40px 32px;
+    padding: 48px 40px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* 确保内容分布到整个高度 */
+    justify-content: space-between;
   }
 
   /* 结果内容容器 */
@@ -561,12 +601,12 @@
   /* 徽章样式 */
   .result-badge {
     text-align: center;
-    padding: 0 0 32px;
-    margin-bottom: 32px;
+    padding: 0 0 40px;
+    margin-bottom: 40px;
     border-bottom: 1px solid var(--border-color);
     opacity: 0;
     transform: translateY(-20px);
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -585,8 +625,8 @@
   }
 
   .badge-icon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -596,10 +636,12 @@
 
   .result-badge.correct .badge-icon {
     color: #22c55e;
+    opacity: 0.9;
   }
 
   .result-badge.wrong .badge-icon {
     color: #ef4444;
+    opacity: 0.9;
   }
 
   .badge-title {
@@ -625,11 +667,11 @@
   /* 结果网格 */
   .result-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     opacity: 0;
     transform: translateY(20px);
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
   }
 
   .result-grid.fade-in {
@@ -639,49 +681,93 @@
 
   .result-item {
     position: relative;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
-  .result-item.highlight {
-    padding-left: 16px;
-  }
+  .result-item:nth-child(1) { animation-delay: 0.8s; }
+  .result-item:nth-child(2) { animation-delay: 0.9s; }
+  .result-item:nth-child(3) { animation-delay: 1.0s; }
+  .result-item:nth-child(4) { animation-delay: 1.1s; }
 
-  .result-item.highlight::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 4px;
-    bottom: 4px;
-    width: 3px;
-    background: var(--primary-500);
-    border-radius: 3px;
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .item-label {
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
     color: var(--text-secondary);
     margin-bottom: 8px;
+    text-transform: uppercase;
   }
 
   .item-value {
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: var(--text-primary);
     line-height: 1.2;
+  }
+
+  .trend-name {
+    font-weight: 600;
+    position: relative;
+    padding-left: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .trend-name::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .prediction.up .trend-name::before {
+    background: #ef4444;
+  }
+
+  .prediction.down .trend-name::before {
+    background: #22c55e;
+  }
+
+  .prediction.shock .trend-name::before {
+    background: #eab308;
+  }
+
+  .trend-change {
+    font-size: 0.875rem;
+    font-weight: 500;
+    opacity: 0.9;
   }
 
   /* 按钮组 */
   .button-group {
-    padding-top: 40px;
+    padding-top: 48px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 0; /* 移除 margin-top: auto */
     opacity: 0;
     transform: translateY(20px);
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s;
   }
 
   .button-group.fade-in {
@@ -689,53 +775,33 @@
     transform: translateY(0);
   }
 
-  .next-btn {
-    padding: 14px 24px;
+  .next-btn, .view-chart-btn {
+    padding: 0 24px;
     background: var(--primary-600);
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0.3px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform: translateY(0);
+    height: 44px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
-  .next-btn:hover {
+  .next-btn:hover, .view-chart-btn:hover {
     background: var(--primary-700);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(var(--primary-600-rgb), 0.2);
-  }
-
-  .view-chart-btn {
-    padding: 14px 24px;
-    border: 1px solid var(--border-color);
-    background: transparent;
-    border-radius: 8px;
-    color: var(--text-secondary);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: translateY(0);
-  }
-
-  .view-chart-btn:hover {
-    border-color: var(--primary-200);
-    color: var(--primary-600);
-    transform: translateY(-1px);
-    background: var(--primary-50);
   }
 
   /* 动画相关 */
   .check, .cross {
     stroke-dasharray: 60;
     stroke-dashoffset: 60;
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s;
   }
 
   .result-badge.slide-down .check,

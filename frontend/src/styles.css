@@ -27,6 +27,19 @@
   --neutral-800: #1e293b;
   --neutral-900: #0f172a;
 
+  /* 应用主题 */
+  --background: var(--neutral-50);
+  --surface: #ffffff;
+  --surface-variant: var(--neutral-50);
+  --text-primary: var(--neutral-800);
+  --text-secondary: var(--neutral-500);
+  --border-color: var(--neutral-200);
+  --hover-bg: var(--neutral-100);
+  --active-bg: var(--neutral-200);
+  --sidebar-bg: #ffffff;
+  --sidebar-border: var(--neutral-200);
+  --shadow-color: rgb(0 0 0 / 0.1);
+
   /* 字体系统 */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont,
     'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
@@ -62,8 +75,29 @@
   --radius-xl: 0.75rem;
 
   /* 阴影 */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color);
+  --shadow-md: 0 4px 6px -1px var(--shadow-color);
+
+  /* 添加颜色过渡 */
+  --transition-colors: background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* 暗黑模式变量 */
+:root.dark {
+  --background: #1a1b1e;
+  --surface: #25262b;
+  --surface-variant: #2c2e33;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --border-color: #2e2e33;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --active-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-bg: #25262b;
+  --sidebar-border: #2e2e33;
+  --shadow-color: rgb(0 0 0 / 0.5);
 }
 
 /* 基础样式 */
@@ -74,7 +108,7 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--neutral-800);
+  color: var(--text-primary);
 }
 
 body {
@@ -136,5 +170,18 @@ html {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 添加全局颜色过渡 */
+*, *::before, *::after {
+  transition: var(--transition-colors);
+}
+
+/* 不需要过渡的元素 */
+.no-transition,
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
+  transition: none !important;
 }
 

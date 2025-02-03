@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"stock-helper-svelte/backend/types"
 	"time"
 )
 
@@ -79,13 +78,13 @@ func (s *engineState) toExecutionStatus() ExecutionStatus {
 
 // ExecutionResult 执行结果
 type ExecutionResult struct {
-	StrategyID      int                 `json:"strategyId"`      // 策略ID
-	StrategyName    string              `json:"strategyName"`    // 策略名称
-	ExecutionTime   time.Time           `json:"executionTime"`   // 执行时间
-	CompletionTime  time.Time           `json:"completionTime"`  // 完成时间
-	TotalStocks     int                 `json:"totalStocks"`     // 总股票数
-	ProcessedStocks int                 `json:"processedStocks"` // 已处理股票数
-	Signals         []types.StockSignal `json:"signals"`         // 信号列表
+	StrategyID      int           `json:"strategyId"`      // 策略ID
+	StrategyName    string        `json:"strategyName"`    // 策略名称
+	ExecutionTime   time.Time     `json:"executionTime"`   // 执行时间
+	CompletionTime  time.Time     `json:"completionTime"`  // 完成时间
+	TotalStocks     int           `json:"totalStocks"`     // 总股票数
+	ProcessedStocks int           `json:"processedStocks"` // 已处理股票数
+	Signals         []StockSignal `json:"signals"`         // 信号列表
 }
 
 // ExecutionRecord 执行记录

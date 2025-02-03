@@ -9,10 +9,9 @@
   import StockTest from './pages/StockTest.svelte'
   import { Toaster } from 'svelte-french-toast'
   import { toastStore } from './stores/toast'
+  import { themeStore } from './stores/theme'
   import { onMount } from 'svelte'
   import { EventsOn } from '../wailsjs/runtime'
-
-
 
   // 路由配置
   const routes = {
@@ -22,12 +21,13 @@
     '/analysis': Overview,
     '/track': Overview,
     '/filter-history': FilterHistory,
-    '/stock/:code': StockQuery,
+    '/stock': StockQuery,
     '/test': StockTest
   }
 
   // 调试日志
   $: console.log('Current route:', $location)
+  $: console.log('Current theme:', $themeStore)
 
   onMount(() => {
     // 监听引擎错误事件
@@ -66,11 +66,37 @@
 </MainLayout>
 
 <style>
+  :global(body) {
+    overscroll-behavior: none;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: var(--background);
+    color: var(--text-primary);
+  }
+
+  :global(*) {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   :global(.toast) {
     --toast-background: var(--surface);
     --toast-color: var(--text-primary);
     --toast-border: 1px solid var(--border-color);
-    --toast-success: var(--success-500);
+    --toast-success: var(--primary-500);
     --toast-error: var(--error-500);
+  }
+
+  :global(.dark .toast) {
+    --toast-background: var(--surface);
+    --toast-color: var(--text-primary);
+    --toast-border: 1px solid var(--border-color);
   }
 </style>

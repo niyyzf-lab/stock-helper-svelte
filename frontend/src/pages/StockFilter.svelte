@@ -437,7 +437,7 @@
   .page-container {
     display: flex;
     height: 100%;
-    color: #1f2937;
+    color: var(--text-primary);
     /* overflow: hidden; */
   }
 
@@ -464,7 +464,7 @@
   /* 顶部导航栏 */
   .header {
     height: 60px;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     animation: fadeIn 0.2s ease-out;
   }
@@ -494,19 +494,19 @@
   h1 {
     font-size: 18px;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
   }
 
   .version {
     font-size: 13px;
     font-weight: 500;
-    color: #2563eb;
+    color: var(--primary-500);
   }
 
   .divider {
     width: 1px;
     height: 12px;
-    background: #e5e7eb;
+    background: var(--border-color);
     margin: 0 12px;
     transform-origin: center;
   }
@@ -518,7 +518,7 @@
 
   .strategy-name {
     font-size: 14px;
-    color: #4b5563;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -541,13 +541,13 @@
   }
 
   .text {
-    color: #4b5563;
+    color: var(--text-secondary);
     background: transparent;
     border: none;
   }
 
   .text:hover {
-    color: #111827;
+    color: var(--text-primary);
     transform: translateY(-1px);
   }
 
@@ -585,11 +585,11 @@
 
   /* 准备状态 */
   .ready-state {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 32px;
     flex: 1;
-    background: linear-gradient(to right, #f8fafc, #f0f7ff);
+    background: var(--surface-variant);
     min-height: 400px;
     display: flex;
     align-items: center;
@@ -622,11 +622,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2563eb;
-    background: white;
-    border: 1px solid #93c5fd;
+    color: var(--primary-500);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 4px 12px var(--shadow-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform-origin: center;
   }
@@ -642,13 +642,13 @@
   .strategy-info h3 {
     font-size: 18px;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
     margin: 0 0 8px;
   }
 
   .strategy-info p {
     font-size: 14px;
-    color: #6b7280;
+    color: var(--text-secondary);
     margin: 0;
     max-width: 480px;
   }
@@ -710,12 +710,12 @@
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     z-index: 1000;
-    color: #4b5563;
+    color: var(--text-secondary);
     animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -802,6 +802,31 @@
 
   .strategy-card:hover .strategy-icon {
     transform: scale(1.1);
+  }
+
+  /* 暗色模式特定样式 */
+  :global(.dark) .ready-state {
+    background: linear-gradient(to right, var(--surface), var(--surface-variant));
+  }
+
+  :global(.dark) .strategy-icon {
+    box-shadow: 0 4px 12px var(--shadow-color);
+    border-color: var(--border-color);
+  }
+
+  :global(.dark) .status-message {
+    background: var(--surface);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-md);
+  }
+
+  :global(.dark) .btn.solid.large {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    box-shadow: 0 2px 8px var(--shadow-color);
+  }
+
+  :global(.dark) .btn.solid.large:hover {
+    box-shadow: 0 4px 12px var(--shadow-color);
   }
 </style> 
 

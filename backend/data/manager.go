@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"stock-helper-svelte/backend/api"
+	"stock-helper-svelte/backend/api/types"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -70,47 +71,21 @@ func (m *Manager) emitStatus() {
 }
 
 // GetStockData 获取股票数据
-func (m *Manager) GetStockData(code string) ([]api.KLineData, []api.HistoricalTransaction, error) {
-	// 并发请求K线数据和历史成交数据
-	var wg sync.WaitGroup
-	errChan := make(chan error, 2)
-	var klineData []api.KLineData
-	var transData []api.HistoricalTransaction
-	var klineErr, transErr error
-
-	wg.Add(2)
+func (m *Manager) GetStockData(code string) ([]types.KLineData, []types.HistoricalTransaction, error) {
+	var klineData []types.KLineData
+	var transData []types.HistoricalTransaction
+	var err error
 
 	// 获取K线数据
-	go func() {
-		defer wg.Done()
-		var err error
-		klineData, err = m.apiClient.GetKLineData(code, "dh")
-		if err != nil {
-			errChan <- fmt.Errorf("获取K线数据失败: %v", err)
-			klineErr = err
-		}
-	}()
+	klineData, err = m.apiClient.Market.GetKLineData(context.Background(), code, types.FREQ_DAILY_HFQ)
+	if err != nil {
+		return nil, nil, fmt.Errorf("获取K线数据失败: %v", err)
+	}
 
 	// 获取历史成交数据
-	go func() {
-		defer wg.Done()
-		var err error
-		transData, err = m.apiClient.GetHistoricalTransactions(code)
-		if err != nil {
-			errChan <- fmt.Errorf("获取历史成交数据失败: %v", err)
-			transErr = err
-		}
-	}()
-
-	// 等待所有请求完成
-	wg.Wait()
-
-	// 检查错误
-	if klineErr != nil {
-		return nil, nil, klineErr
-	}
-	if transErr != nil {
-		return nil, nil, transErr
+	transData, err = m.apiClient.Market.GetHistoricalTransactions(context.Background(), code)
+	if err != nil {
+		return nil, nil, fmt.Errorf("获取历史成交数据失败: %v", err)
 	}
 
 	// 确保两个数据都获取成功
@@ -122,8 +97,8 @@ func (m *Manager) GetStockData(code string) ([]api.KLineData, []api.HistoricalTr
 }
 
 // filterStocks 过滤掉ST股票和退市股票
-func (m *Manager) filterStocks(stocks []api.Index) []api.Index {
-	filtered := make([]api.Index, 0, len(stocks))
+func (m *Manager) filterStocks(stocks []types.Index) []types.Index {
+	filtered := make([]types.Index, 0, len(stocks))
 	for _, stock := range stocks {
 		// 过滤掉ST股票
 		if strings.Contains(strings.ToUpper(stock.Name), "ST") {
@@ -180,7 +155,7 @@ func (m *Manager) UpdateAllStocks(ctx context.Context) error {
 	}()
 
 	// 获取股票列表
-	indices, err := m.apiClient.GetIndexList()
+	indices, err := m.apiClient.Market.GetIndexList(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to get index list: %v", err)
 	}
@@ -204,7 +179,7 @@ func (m *Manager) UpdateAllStocks(ctx context.Context) error {
 		wg.Add(1)
 		sem <- struct{}{} // 获取信号量
 
-		go func(idx api.Index) {
+		go func(idx types.Index) {
 			defer func() {
 				<-sem // 释放信号量
 				wg.Done()

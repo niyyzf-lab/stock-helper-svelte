@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"stock-helper-svelte/backend/api"
+	"stock-helper-svelte/backend/api/types"
 )
 
 // Engine 执行引擎实现
@@ -105,7 +106,7 @@ func (e *Engine) Execute(strategy *Strategy) error {
 	}
 
 	// 获取股票列表
-	stocks, err := e.apiClient.GetIndexList()
+	stocks, err := e.apiClient.Market.GetIndexList(context.Background())
 	if err != nil {
 		return NewAPIRequestError("failed to get stock list", err)
 	}
@@ -237,8 +238,8 @@ func (e *Engine) getStatusString() string {
 }
 
 // filterStocks 过滤股票列表
-func (e *Engine) filterStocks(stocks []api.Index) []api.Index {
-	filtered := make([]api.Index, 0, len(stocks))
+func (e *Engine) filterStocks(stocks []types.Index) []types.Index {
+	filtered := make([]types.Index, 0, len(stocks))
 	for _, stock := range stocks {
 		// 过滤ST股票
 		if strings.Contains(strings.ToUpper(stock.Name), "ST") {

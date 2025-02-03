@@ -1,9 +1,5 @@
 package indicators
 
-import (
-	"fmt"
-)
-
 // MAType 定义了移动平均线的类型
 type MAType string
 
@@ -15,21 +11,25 @@ const (
 )
 
 // CalculateMA 计算移动平均线
-// prices: 收盘价数组
-// maType: 移动平均线类型
-// period: 周期
-// 返回: 计算结果数组，与输入价格数组等长，无法计算的位置为 math.NaN()
 func CalculateMA(prices []float64, maType MAType, period int) ([]float64, error) {
+	if prices == nil {
+		return make([]float64, 0), nil
+	}
 	if len(prices) == 0 {
-		return nil, fmt.Errorf("价格数组不能为空")
+		return make([]float64, 0), nil
 	}
-
 	if period <= 0 {
-		return nil, fmt.Errorf("周期必须大于0")
+		return make([]float64, len(prices)), nil
+	}
+	if period > len(prices) {
+		return make([]float64, len(prices)), nil
 	}
 
-	if period > len(prices) {
-		return nil, fmt.Errorf("周期不能大于价格数组长度")
+	// 检查价格数组中是否存在无效值
+	for i, price := range prices {
+		if !IsValidFloat(price) {
+			prices[i] = 0
+		}
 	}
 
 	switch maType {
@@ -42,7 +42,7 @@ func CalculateMA(prices []float64, maType MAType, period int) ([]float64, error)
 	case TMA:
 		return calculateTMA(prices, period), nil
 	default:
-		return nil, fmt.Errorf("不支持的移动平均线类型: %s", maType)
+		return make([]float64, len(prices)), nil
 	}
 }
 
@@ -80,7 +80,7 @@ func calculateEMA(prices []float64, period int) []float64 {
 		result[i] = 0
 	}
 
-	// 计算第一个EMA（使用SMA作为第一个值）
+	// 使用SMA作为第一个EMA值
 	sum := 0.0
 	for i := 0; i < period; i++ {
 		sum += prices[i]
@@ -90,7 +90,8 @@ func calculateEMA(prices []float64, period int) []float64 {
 	// 计算后续的EMA
 	multiplier := 2.0 / float64(period+1)
 	for i := period; i < len(prices); i++ {
-		result[i] = (prices[i]-result[i-1])*multiplier + result[i-1]
+		// 使用更稳定的计算方法
+		result[i] = prices[i]*multiplier + result[i-1]*(1-multiplier)
 	}
 
 	return result
@@ -125,7 +126,7 @@ func calculateWMA(prices []float64, period int) []float64 {
 func calculateTMA(prices []float64, period int) []float64 {
 	result := make([]float64, len(prices))
 
-	// 首先计算SMA，所有函数都会返回0而不是NaN
+	// 计算三重SMA
 	sma1 := calculateSMA(prices, period)
 	sma2 := calculateSMA(sma1, period)
 	sma3 := calculateSMA(sma2, period)

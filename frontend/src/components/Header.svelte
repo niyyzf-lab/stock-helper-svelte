@@ -16,6 +16,18 @@
     firstPinyin: string // 首字母
   }
 
+  interface StockParams {
+    code: string
+    name: string
+    exchange: string
+  }
+
+  interface StockResponse {
+    dm: string;    // 代码
+    mc: string;    // 名称
+    jys: string;   // 交易所
+  }
+
   let mounted = false
   let showSearchModal = false
   let searchInput = ''
@@ -42,7 +54,7 @@
     try {
       loading = true
       const result = await (window as any).go.main.App.GetIndexList()
-      stocks = (result || []).map(stock => {
+      stocks = (result || []).map((stock: StockResponse) => {
         const pinyinInfo = getPinyinInfo(stock.mc || '')
         return {
           code: stock.dm || '',
@@ -51,7 +63,7 @@
           fullPinyin: pinyinInfo.full,
           firstPinyin: pinyinInfo.first
         }
-      }).filter(stock => stock.code && stock.name)
+      }).filter((stock: Stock) => stock.code && stock.name)
     } catch (err) {
       console.error('加载股票列表失败:', err)
       stocks = []
@@ -68,11 +80,14 @@
 
   // 处理股票选择
   function handleStockSelect(stock: Stock) {
-    // 关闭搜索模态框
     showSearchModal = false
     searchInput = ''
-    // 导航到股票详情页，同时携带股票代码和名称
-    push(`/stock/${stock.code}-${stock.name}-${stock.exchange}`)
+    const params = new URLSearchParams({
+      code: stock.code,
+      name: stock.name,
+      exchange: stock.exchange
+    })
+    push(`/stock?${params.toString()}`)
   }
 
   function clearSearch() {
@@ -310,9 +325,11 @@
   header {
     height: 60px;
     border-bottom: 1px solid var(--border-color);
+    padding-left: 14px; /* 增加左边距 */
     transform-origin: top;
     opacity: 0;
     animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    background: var(--surface);
   }
 
   @keyframes fadeIn {
@@ -348,7 +365,7 @@
     gap: 8px;
     padding: 0 12px;
     height: 36px;
-    background: var(--neutral-50);
+    background: var(--surface-variant);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     color: var(--text-secondary);
@@ -359,9 +376,9 @@
   }
 
   .search-box:hover {
-    background: var(--neutral-100);
+    background: var(--hover-bg);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px var(--shadow-color);
   }
 
   input {
@@ -416,7 +433,7 @@
     gap: 12px;
     padding: 0 16px;
     height: 48px;
-    background: var(--neutral-50);
+    background: var(--surface-variant);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     color: var(--text-secondary);
@@ -426,9 +443,9 @@
   }
 
   .search-input:focus-within {
-    border-color: var(--primary-400);
-    background: white;
-    box-shadow: 0 0 0 3px var(--primary-100);
+    border-color: var(--primary-500);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   }
 
   .search-icon {
@@ -499,7 +516,7 @@
     padding: 64px 24px 24px;
     color: var(--text-secondary);
     font-size: 14px;
-    background: linear-gradient(to right, var(--neutral-25), var(--primary-25));
+    background: var(--surface-variant);
     border-radius: 12px;
     margin: 0;
     min-height: 400px;
@@ -525,10 +542,10 @@
     align-items: center;
     justify-content: center;
     color: var(--primary-500);
-    background: white;
-    border: 1px solid var(--primary-200);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: 0 4px 12px var(--primary-100);
+    box-shadow: 0 4px 12px var(--shadow-color);
     animation: float 8s ease-in-out infinite;
     will-change: transform;
     transform-origin: center;
@@ -569,7 +586,7 @@
   .search-tips {
     width: 100%;
     padding: 16px;
-    background: var(--neutral-0);
+    background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     margin-top: auto;
@@ -606,7 +623,7 @@
   .tips-value {
     font-size: 13px;
     color: var(--primary-500);
-    background: var(--primary-50);
+    background: var(--surface-variant);
     padding: 2px 8px;
     border-radius: 4px;
     font-family: var(--font-mono);
@@ -614,8 +631,8 @@
   }
 
   .tips-col:hover .tips-value {
-    background: var(--primary-100);
-    color: var(--primary-600);
+    background: var(--hover-bg);
+    color: var(--primary-400);
     transform: scale(1.1);
   }
 
@@ -644,7 +661,7 @@
   }
 
   .stock-item:hover {
-    background: var(--neutral-50);
+    background: var(--hover-bg);
     transform: translateX(6px) scale(1.01);
   }
 
@@ -688,7 +705,7 @@
     font-size: 13px;
     color: var(--text-tertiary);
     padding: 2px 8px;
-    background: var(--neutral-50);
+    background: var(--surface-variant);
     border-radius: 4px;
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -706,7 +723,7 @@
 
   .stock-item:hover .stock-exchange {
     color: var(--primary-500);
-    background: var(--primary-50);
+    background: var(--hover-bg);
   }
 
   .shortcut-hint {
@@ -714,7 +731,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    background: var(--neutral-100);
+    background: var(--surface-variant);
     border-radius: 4px;
     color: var(--text-tertiary);
     font-size: 12px;
@@ -735,7 +752,7 @@
     font-size: 13px;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 4px;
-    background: var(--neutral-0);
+    background: var(--surface);
     position: sticky;
     top: 0;
     z-index: 1;
@@ -756,7 +773,7 @@
   .spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid var(--neutral-200);
+    border: 2px solid var(--border-color);
     border-top-color: var(--primary-500);
     border-radius: 50%;
     animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -777,14 +794,14 @@
   }
 
   .search-content::-webkit-scrollbar-thumb {
-    background: var(--neutral-200);
+    background: var(--border-color);
     border-radius: 6px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
 
   .search-content::-webkit-scrollbar-thumb:hover {
-    background: var(--neutral-300);
+    background: var(--text-secondary);
     border: 2px solid transparent;
     background-clip: padding-box;
   }
